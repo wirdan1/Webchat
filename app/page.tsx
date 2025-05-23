@@ -33,9 +33,9 @@ export default function Home() {
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
-              <Link href="/about">
+              <Link href="/terms">
                 <Button variant="outline" size="lg">
-                  Learn More
+                  Terms & Privacy
                 </Button>
               </Link>
             </div>
@@ -56,6 +56,11 @@ export default function Home() {
           <p className="text-center text-sm text-muted-foreground">
             &copy; {new Date().getFullYear()} ChatGroup. All rights reserved.
           </p>
+          <div className="flex gap-4">
+            <Link href="/terms" className="text-sm text-muted-foreground hover:underline">
+              Terms & Privacy
+            </Link>
+          </div>
         </div>
       </footer>
     </div>
