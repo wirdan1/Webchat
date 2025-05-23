@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { registerUser } from "@/lib/actions"
 
 export default function Register() {
   const router = useRouter()
@@ -28,19 +27,22 @@ export default function Register() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // Basic validation
-    if (!formData.name.trim() || !formData.phone.trim() || !formData.password) {
-      setError("Please fill in all fields")
+    // Client-side validation
+    if (!formData.name.trim()) {
+      setError("Please enter your name")
       return
     }
 
-    // Validate phone number format (basic check)
+    if (!formData.phone.trim()) {
+      setError("Please enter your phone number")
+      return
+    }
+
     if (!/^\d+$/.test(formData.phone)) {
       setError("Phone number should contain only digits")
       return
     }
 
-    // Validate password length
     if (formData.password.length < 6) {
       setError("Password should be at least 6 characters")
       return
@@ -50,14 +52,23 @@ export default function Register() {
     setError(null)
 
     try {
-      const result = await registerUser(formData)
-      if (result?.success) {
-        router.push("/chat")
-      } else {
-        setError(result?.error || "Registration failed. Please try again.")
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Registration failed')
       }
+
+      router.push("/chat")
     } catch (error) {
-      console.error("Registration failed:", error)
+      console.error("Registration error:", error)
       setError(error instanceof Error ? error.message : "Registration failed. Please try again.")
     } finally {
       setIsLoading(false)
