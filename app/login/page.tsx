@@ -9,11 +9,13 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { loginUser } from "@/lib/actions"
 
 export default function Login() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     phone: "",
     password: "",
@@ -27,12 +29,16 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    setError(null)
 
     try {
-      await loginUser(formData)
-      router.push("/chat")
+      const result = await loginUser(formData)
+      if (result.success) {
+        router.push("/chat")
+      }
     } catch (error) {
       console.error("Login failed:", error)
+      setError(error instanceof Error ? error.message : "Invalid credentials. Please try again.")
     } finally {
       setIsLoading(false)
     }
@@ -47,6 +53,11 @@ export default function Login() {
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
             <div className="space-y-2">
               <Label htmlFor="phone">Phone Number</Label>
               <Input
