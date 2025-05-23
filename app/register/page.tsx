@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
@@ -10,12 +9,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { registerUser } from "@/lib/actions"
 
 export default function Register() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -27,19 +26,33 @@ export default function Register() {
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
+  const simulateRegister = async (data: typeof formData) => {
+    // Simulasi delay jaringan
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    // Log data tanpa menyimpan ke database
+    console.log("Simulated registration data:", data)
+    
+    return { success: true, message: "Simulated registration successful (not saved to DB)" }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setError(null)
+    setSuccess(false)
 
     try {
-      const result = await registerUser(formData)
+      // Gunakan fungsi simulasi instead of registerUser
+      const result = await simulateRegister(formData)
+      
       if (result.success) {
-        router.push("/chat")
+        setSuccess(true)
+        // Tidak langsung redirect, tapi tampilkan pesan sukses
       }
     } catch (error) {
-      console.error("Registration failed:", error)
-      setError(error instanceof Error ? error.message : "Registration failed. Please try again.")
+      console.error("Registration simulation failed:", error)
+      setError("Registration simulation failed. Please try again.")
     } finally {
       setIsLoading(false)
     }
@@ -49,8 +62,10 @@ export default function Register() {
     <div className="container flex h-screen w-screen flex-col items-center justify-center">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
-          <CardDescription>Enter your details below to create your account</CardDescription>
+          <CardTitle className="text-2xl font-bold">Create an account (DEMO)</CardTitle>
+          <CardDescription>
+            This is a demo form. No data will be saved to database.
+          </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
@@ -59,6 +74,22 @@ export default function Register() {
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
+            
+            {success && (
+              <Alert>
+                <AlertDescription>
+                  Demo registration successful! No data was saved to database.
+                  <Button 
+                    variant="link" 
+                    className="p-0 ml-2 h-auto" 
+                    onClick={() => router.push("/chat")}
+                  >
+                    Continue to demo chat
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+            
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
               <Input
@@ -97,7 +128,7 @@ export default function Register() {
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Creating account..." : "Create account"}
+              {isLoading ? "Simulating registration..." : "Create demo account"}
             </Button>
             <div className="text-center text-sm">
               Already have an account?{" "}
