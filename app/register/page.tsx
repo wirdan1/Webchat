@@ -1,7 +1,5 @@
 "use client"
 
-import type React from "react"
-
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
@@ -29,13 +27,34 @@ export default function Register() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Basic validation
+    if (!formData.name.trim() || !formData.phone.trim() || !formData.password) {
+      setError("Please fill in all fields")
+      return
+    }
+
+    // Validate phone number format (basic check)
+    if (!/^\d+$/.test(formData.phone)) {
+      setError("Phone number should contain only digits")
+      return
+    }
+
+    // Validate password length
+    if (formData.password.length < 6) {
+      setError("Password should be at least 6 characters")
+      return
+    }
+
     setIsLoading(true)
     setError(null)
 
     try {
       const result = await registerUser(formData)
-      if (result.success) {
+      if (result?.success) {
         router.push("/chat")
+      } else {
+        setError(result?.error || "Registration failed. Please try again.")
       }
     } catch (error) {
       console.error("Registration failed:", error)
@@ -68,6 +87,7 @@ export default function Register() {
                 required
                 value={formData.name}
                 onChange={handleChange}
+                disabled={isLoading}
               />
             </div>
             <div className="space-y-2">
@@ -80,6 +100,8 @@ export default function Register() {
                 required
                 value={formData.phone}
                 onChange={handleChange}
+                disabled={isLoading}
+                pattern="[0-9]*"
               />
             </div>
             <div className="space-y-2">
@@ -88,10 +110,12 @@ export default function Register() {
                 id="password"
                 name="password"
                 type="password"
-                placeholder="Create a password"
+                placeholder="Create a password (min 6 characters)"
                 required
+                minLength={6}
                 value={formData.password}
                 onChange={handleChange}
+                disabled={isLoading}
               />
             </div>
           </CardContent>
@@ -101,7 +125,7 @@ export default function Register() {
             </Button>
             <div className="text-center text-sm">
               Already have an account?{" "}
-              <Link href="/login" className="underline">
+              <Link href="/login" className="underline hover:text-primary">
                 Login
               </Link>
             </div>
