@@ -13,13 +13,16 @@ interface MessageItemProps {
     text: string
     fileUrl?: string
     fileType?: string
+    fileName?: string
     createdAt: string
   }
   isCurrentUser: boolean
+  showAvatar: boolean
 }
 
-export function MessageItem({ message, isCurrentUser }: MessageItemProps) {
+export function MessageItem({ message, isCurrentUser, showAvatar }: MessageItemProps) {
   const [mediaLoaded, setMediaLoaded] = useState(false)
+  const [mediaError, setMediaError] = useState(false)
 
   const getInitials = (name: string) => {
     return name
@@ -27,6 +30,14 @@ export function MessageItem({ message, isCurrentUser }: MessageItemProps) {
       .map((n) => n[0])
       .join("")
       .toUpperCase()
+  }
+
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    })
   }
 
   const renderMedia = () => {
@@ -43,7 +54,9 @@ export function MessageItem({ message, isCurrentUser }: MessageItemProps) {
               mediaLoaded ? "opacity-100" : "opacity-0",
             )}
             onLoad={() => setMediaLoaded(true)}
+            onError={() => setMediaError(true)}
           />
+          {mediaError && <div className="p-2 text-sm text-red-500">Failed to load image</div>}
         </div>
       )
     }
@@ -54,9 +67,11 @@ export function MessageItem({ message, isCurrentUser }: MessageItemProps) {
           <video
             src={message.fileUrl}
             controls
-            className="max-h-[300px] w-auto"
+            className="max-h-[300px] w-full"
             onLoadedData={() => setMediaLoaded(true)}
+            onError={() => setMediaError(true)}
           />
+          {mediaError && <div className="p-2 text-sm text-red-500">Failed to load video</div>}
         </div>
       )
     }
@@ -64,7 +79,8 @@ export function MessageItem({ message, isCurrentUser }: MessageItemProps) {
     if (message.fileType?.startsWith("audio")) {
       return (
         <div className="mt-2">
-          <audio src={message.fileUrl} controls className="w-full" />
+          <audio src={message.fileUrl} controls className="w-full" onError={() => setMediaError(true)} />
+          {mediaError && <div className="p-2 text-sm text-red-500">Failed to load audio</div>}
         </div>
       )
     }
@@ -72,31 +88,46 @@ export function MessageItem({ message, isCurrentUser }: MessageItemProps) {
     return (
       <div className="mt-2">
         <a href={message.fileUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-500 underline">
-          Download attachment
+          {message.fileName || "Download attachment"}
         </a>
       </div>
     )
   }
 
   return (
-    <div className={cn("flex gap-2", isCurrentUser ? "flex-row-reverse" : "flex-row")}>
-      <Avatar className="h-8 w-8">
-        <AvatarFallback>{getInitials(message.userName)}</AvatarFallback>
-      </Avatar>
-      <div className={cn("max-w-[70%]", isCurrentUser ? "text-right" : "")}>
-        <div className="text-xs text-muted-foreground">
-          {isCurrentUser ? "You" : message.userName} •{" "}
-          {new Date(message.createdAt).toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
-        </div>
-        <Card className={cn("mt-1", isCurrentUser ? "bg-primary text-primary-foreground" : "bg-muted")}>
+    <div
+      className={cn(
+        "flex gap-2 mb-1",
+        isCurrentUser ? "flex-row-reverse" : "flex-row",
+        !showAvatar && !isCurrentUser && "pl-10",
+      )}
+    >
+      {showAvatar ? (
+        <Avatar className="h-8 w-8 mt-1">
+          <AvatarFallback>{getInitials(message.userName)}</AvatarFallback>
+        </Avatar>
+      ) : !isCurrentUser ? (
+        <div className="w-8"></div>
+      ) : null}
+
+      <div className={cn("max-w-[75%]", isCurrentUser ? "text-right" : "")}>
+        {showAvatar && (
+          <div className="text-xs text-muted-foreground mb-1">{isCurrentUser ? "You" : message.userName}</div>
+        )}
+
+        <Card
+          className={cn(
+            "inline-block text-left",
+            isCurrentUser ? "bg-primary text-primary-foreground rounded-tr-none" : "bg-muted rounded-tl-none",
+          )}
+        >
           <CardContent className="p-3">
-            {message.text && <p className="text-sm">{message.text}</p>}
+            {message.text && <p className="text-sm whitespace-pre-wrap">{message.text}</p>}
             {renderMedia()}
           </CardContent>
         </Card>
+
+        <div className="text-xs text-muted-foreground mt-1">{formatTime(message.createdAt)}</div>
       </div>
     </div>
   )
