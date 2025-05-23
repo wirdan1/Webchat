@@ -10,16 +10,27 @@ import { Card } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
-import { ImageIcon, Video, AudioLines, Send, LogOut, User, Users, RefreshCw } from "lucide-react"
-import { sendMessage, getMessages, getUserProfile, logoutUser } from "@/lib/actions"
+import { Badge } from "@/components/ui/badge"
+import { ImageIcon, Video, AudioLines, Send, LogOut, User, Users, RefreshCw, Info } from "lucide-react"
+import { sendMessage, getMessages, getUserProfile, logoutUser, getActiveUsers } from "@/lib/actions"
 import { MessageItem } from "@/components/message-item"
 import { UserProfile } from "@/components/user-profile"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { ActiveUsersList } from "@/components/active-users-list"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 
 export default function Chat() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [messages, setMessages] = useState<any[]>([])
+  const [activeUsers, setActiveUsers] = useState<any[]>([])
   const [message, setMessage] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [attachmentType, setAttachmentType] = useState<string | null>(null)
@@ -39,6 +50,7 @@ export default function Chat() {
         }
         setUser(profile)
         loadMessages()
+        loadActiveUsers()
       } catch (error) {
         console.error("Auth check failed:", error)
         router.push("/login")
@@ -47,12 +59,19 @@ export default function Chat() {
 
     checkAuth()
 
-    // Set up polling for new messages
-    const interval = setInterval(() => {
+    // Set up polling for new messages and active users
+    const messageInterval = setInterval(() => {
       loadMessages(false)
     }, 5000)
 
-    return () => clearInterval(interval)
+    const usersInterval = setInterval(() => {
+      loadActiveUsers(false)
+    }, 30000)
+
+    return () => {
+      clearInterval(messageInterval)
+      clearInterval(usersInterval)
+    }
   }, [router])
 
   const loadMessages = async (showLoading = true) => {
@@ -67,6 +86,15 @@ export default function Chat() {
       console.error("Failed to load messages:", error)
     } finally {
       setRefreshing(false)
+    }
+  }
+
+  const loadActiveUsers = async (showLoading = false) => {
+    try {
+      const data = await getActiveUsers()
+      setActiveUsers(data)
+    } catch (error) {
+      console.error("Failed to load active users:", error)
     }
   }
 
@@ -145,7 +173,54 @@ export default function Chat() {
       <header className="border-b bg-white shadow-sm dark:bg-gray-800 dark:border-gray-700">
         <div className="container flex h-16 items-center px-4">
           <h1 className="text-2xl font-bold">ChatGroup</h1>
+
+          <div className="ml-4 flex items-center">
+            <Badge variant="outline" className="flex items-center gap-1">
+              <div className="h-2 w-2 rounded-full bg-green-500"></div>
+              <span>{activeUsers.length + 1} online</span>
+            </Badge>
+          </div>
+
           <div className="ml-auto flex items-center gap-4">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="icon" title="About">
+                  <Info className="h-5 w-5" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>About ChatGroup</DialogTitle>
+                  <DialogDescription>
+                    ChatGroup is a secure messaging platform where all your data is stored safely in our database.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div>
+                    <h4 className="font-medium">Data Storage</h4>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      All messages and media files are stored securely in our MongoDB database. Your data is only
+                      accessible to authorized users.
+                    </p>
+                  </div>
+                  <div>
+                    <h4 className="font-medium">Privacy</h4>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      By using this application, you have consented to the storage of your profile information,
+                      messages, and media files.
+                    </p>
+                  </div>
+                  <div>
+                    <h4 className="font-medium">Multiple Users</h4>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      This platform supports multiple users. Anyone can register with a unique phone number and
+                      participate in the group chat.
+                    </p>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+
             <div className="flex items-center gap-2">
               <Avatar className="h-8 w-8">
                 {user.avatarUrl ? <AvatarImage src={user.avatarUrl || "/placeholder.svg"} alt={user.name} /> : null}
@@ -167,6 +242,10 @@ export default function Chat() {
                 <Users className="h-4 w-4" />
                 Group Chat
               </TabsTrigger>
+              <TabsTrigger value="users" className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Active Users
+              </TabsTrigger>
               <TabsTrigger value="profile" className="flex items-center gap-2">
                 <User className="h-4 w-4" />
                 Profile
@@ -177,7 +256,10 @@ export default function Chat() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => loadMessages()}
+                onClick={() => {
+                  loadMessages()
+                  loadActiveUsers()
+                }}
                 disabled={refreshing}
                 className="flex items-center gap-1"
               >
@@ -300,6 +382,10 @@ export default function Chat() {
                 }
               />
             </Card>
+          </TabsContent>
+
+          <TabsContent value="users" className="flex-1 overflow-auto p-4">
+            <ActiveUsersList currentUser={user} activeUsers={activeUsers} />
           </TabsContent>
 
           <TabsContent value="profile" className="flex-1 overflow-auto p-4">
